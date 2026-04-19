@@ -1,0 +1,28 @@
+# ─────────────────────────────────────────────
+#  Federated Learning Project — requirements.txt
+#  Python 3.10 recommended
+#  Install: pip install -r requirements.txt
+# ─────────────────────────────────────────────
+
+# Core FL Framework
+flwr==1.8.0
+
+# Deep Learning
+torch==2.2.2
+torchvision==0.17.2
+
+# Data & Math
+numpy==1.26.4
+pandas==2.2.1
+scikit-learn==1.4.2
+
+# Config Parsing
+pyyaml==6.0.1
+
+# Plotting & Visualization
+matplotlib==3.8.4
+seaborn==0.13.2
+
+# Utilities
+tqdm==4.66.2
+Pillow==10.3.0
