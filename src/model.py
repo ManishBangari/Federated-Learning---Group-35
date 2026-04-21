@@ -141,3 +141,13 @@ def get_model(architecture: str, num_classes: int = 10) -> nn.Module:
     print(f"[Model] {architecture.upper()} loaded — "
           f"Params: {total_params:,} | Classes: {num_classes}")
     return model
+
+
+# ──────────────────────────────────────────────
+#  Parameter extraction (used by main.py + server.py)
+# ──────────────────────────────────────────────
+
+def get_parameters(model: nn.Module):
+    """Extract model weights as list of numpy arrays."""
+    import numpy as np
+    return [val.cpu().numpy() for _, val in model.state_dict().items()]

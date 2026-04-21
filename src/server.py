@@ -57,6 +57,9 @@ class FedAvgWithLogging(FedAvg):
         self.logger = logger
         self.experiment_name = experiment_name
         self.results_dir = results_dir
+        self._round_counter    = 0
+        self._round_start_time = None
+        self._last_fit_count   = 0
 
     def aggregate_fit(
         self,
@@ -64,14 +67,15 @@ class FedAvgWithLogging(FedAvg):
         results,
         failures,
     ):
-        """Aggregate weights + log training metrics."""
+        """Aggregate weights. Also records round start time for Cat. 7 timing."""
+        import time
+        self._round_start_time = time.time()
         aggregated_weights, aggregated_metrics = super().aggregate_fit(
             server_round, results, failures
         )
-
-        if aggregated_metrics:
-            print(f"\n[Round {server_round}] Train metrics: {aggregated_metrics}")
-
+        self._round_counter = server_round
+        # Number of clients that successfully completed fit this round
+        self._last_fit_count = len(results)
         return aggregated_weights, aggregated_metrics
 
     def aggregate_evaluate(
@@ -80,22 +84,57 @@ class FedAvgWithLogging(FedAvg):
         results,
         failures,
     ):
-        """Aggregate evaluation metrics + log to CSV."""
+        """Aggregate evaluation metrics + log to CSV.
+
+        Maps client-reported val_accuracy/val_loss -> global_test_accuracy/global_test_loss.
+        Also logs Cat. 7 metrics: participated_clients.
+        round_completion_time and straggler_ratio are left as None until
+        straggler simulation is added (TODO).
+        """
+        import time
+        aggregation_end = time.time()
+
         loss_aggregated, aggregated_metrics = super().aggregate_evaluate(
             server_round, results, failures
         )
 
-        # Collect and log
-        val_accuracy = aggregated_metrics.get("val_accuracy", None)
-        print(f"[Round {server_round}] "
-              f"Val Loss: {loss_aggregated:.4f} | "
-              f"Val Accuracy: {val_accuracy:.2f}%" if val_accuracy else
-              f"[Round {server_round}] Val Loss: {loss_aggregated:.4f}")
+        # Client reports "val_accuracy"; we store as "global_test_accuracy"
+        global_acc  = aggregated_metrics.get("val_accuracy", None)
+        global_loss = loss_aggregated
+
+        # ── Cat. 7: participated_clients ──
+        # Number of clients that returned evaluate results this round
+        participated = len(results)
+
+        # ── Cat. 7: round_completion_time ──
+        # Wall-clock time from start of fit to end of evaluate aggregation.
+        # NOTE: In Flower simulation this is CPU time, not real async time.
+        # TODO: Will be replaced with per-client simulated delay once
+        #       straggler simulation config is provided.
+        round_time = (
+            round(aggregation_end - self._round_start_time, 3)
+            if self._round_start_time is not None else None
+        )
+
+        # ── Cat. 7: straggler_ratio ──
+        # TODO: requires straggler simulation — left as None for now.
+        straggler_ratio = None
+
+        print(f"[Round {server_round:>3}] "
+              f"Global Test Loss: {global_loss:.4f} | "
+              f"Global Test Accuracy: {global_acc:.2f}% | "
+              f"Participated: {participated}"
+              if global_acc is not None else
+              f"[Round {server_round:>3}] Global Test Loss: {global_loss:.4f} | "
+              f"Participated: {participated}")
 
         self.logger.log(
             round_num=server_round,
-            val_loss=loss_aggregated,
-            val_accuracy=val_accuracy,
+            global_test_accuracy=global_acc,
+            global_test_loss=global_loss,
+            round_completion_time=round_time,       # Cat. 7 (TODO: straggler sim)
+            straggler_ratio=straggler_ratio,        # Cat. 7 (TODO: straggler sim)
+            participated_clients=participated,      # Cat. 7
         )
 
         return loss_aggregated, aggregated_metrics

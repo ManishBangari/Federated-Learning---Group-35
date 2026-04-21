@@ -98,9 +98,30 @@ def run_simulation(config: dict):
         seed=seed,
     )
 
-    # 6. Logger
+    # 6. Logger -- suffix experiment name with partition/alpha so results
+    #    from different alpha values never overwrite each other
     exp_name = config["experiment"]["name"]
-    logger   = MetricsLogger(exp_name, results_dir)
+    if partition == "noniid_dirichlet":
+        exp_name = f"{exp_name}_alpha{str(alpha).replace('.', '')}"
+    else:
+        exp_name = f"{exp_name}_iid"
+
+    # Compute model size in MB (params x 4 bytes for float32)
+    _tmp_model = get_model(
+        architecture=config["model"]["architecture"],
+        num_classes=config["dataset"]["num_classes"],
+    )
+    _num_params       = sum(p.numel() for p in _tmp_model.parameters())
+    model_size_mb     = (_num_params * 4) / (1024 ** 2)   # float32 = 4 bytes
+    clients_per_round = max(1, int(config["federation"]["fraction_fit"] * num_clients))
+
+    logger = MetricsLogger(
+        experiment_name=exp_name,
+        results_dir=results_dir,
+        convergence_threshold=80.0,
+        model_size_mb=model_size_mb,
+        num_clients_per_round=clients_per_round,
+    )
 
     # 7. Initial global model
     model = get_model(
