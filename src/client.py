@@ -19,8 +19,8 @@ from typing import Dict, List, Tuple
 import flwr as fl
 from flwr.common import NDArrays, Scalar
 
-from model import get_model
-from data import get_client_dataloader
+from src.model import get_model
+from src.data import get_client_dataloader
 
 
 # ──────────────────────────────────────────────

@@ -101,10 +101,7 @@ def run_simulation(config: dict):
     # 6. Logger -- suffix experiment name with partition/alpha so results
     #    from different alpha values never overwrite each other
     exp_name = config["experiment"]["name"]
-    if partition == "noniid_dirichlet":
-        exp_name = f"{exp_name}_alpha{str(alpha).replace('.', '')}"
-    else:
-        exp_name = f"{exp_name}_iid"
+    # name in YAML already contains partition tag — no suffix needed
 
     # Compute model size in MB (params x 4 bytes for float32)
     _tmp_model = get_model(
@@ -171,20 +168,27 @@ def run_simulation(config: dict):
     print(f"{'='*60}\n")
 
     # 11. Launch Flower simulation
-    fl.simulation.start_simulation(
-        client_fn=client_fn,
-        num_clients=num_clients,
-        config=fl.server.ServerConfig(
-            num_rounds=config["federation"]["num_rounds"]
-        ),
-        strategy=strategy,
-        client_resources={"num_cpus": 1, "num_gpus": 0.0},
-    )
+    try:
+        fl.simulation.start_simulation(
+            client_fn=client_fn,
+            num_clients=num_clients,
+            config=fl.server.ServerConfig(
+                num_rounds=config["federation"]["num_rounds"]
+            ),
+            strategy=strategy,
+            client_resources={"num_cpus": 1, "num_gpus": 0.0},
+        )
+    except KeyboardInterrupt:
+        print(f"\n[Interrupted] Ctrl+C detected — saving {len(logger.records)} completed rounds...")
 
-    # 12. Save metrics + plots
-    logger.save()
-    if config["logging"].get("save_results", True):
-        plot_metrics(exp_name, results_dir)
+    # 12. Save metrics + plots (always runs, even after Ctrl+C)
+    if len(logger.records) > 0:
+        logger.save()
+        if config["logging"].get("save_results", True):
+            plot_metrics(exp_name, results_dir)
+            print(f"[Done] Plots saved to {results_dir}/plots/")
+    else:
+        print("[Warning] No rounds completed — nothing to save.")
 
     print(f"\n[Done] '{exp_name}' — results saved to {results_dir}/")
 

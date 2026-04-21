@@ -14,8 +14,8 @@ from flwr.server.strategy import FedAvg
 from typing import Dict, List, Optional, Tuple, Union
 import numpy as np
 
-from model import get_model, get_parameters
-from utils import MetricsLogger, plot_metrics, set_seed
+from src.model import get_model, get_parameters
+from src.utils import MetricsLogger, plot_metrics, set_seed
 
 
 # ──────────────────────────────────────────────

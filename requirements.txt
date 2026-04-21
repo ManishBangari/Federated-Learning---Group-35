@@ -5,7 +5,7 @@
 # ─────────────────────────────────────────────
 
 # Core FL Framework
-flwr==1.8.0
+flwr[simulation]==1.8.0
 
 # Deep Learning (CPU-only)
 # Install separately BEFORE pip install -r requirements.txt:
