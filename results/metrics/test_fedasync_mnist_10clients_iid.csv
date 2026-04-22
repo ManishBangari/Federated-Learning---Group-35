@@ -1,0 +1,6 @@
+round,global_test_accuracy,global_test_loss,convergence_round,comm_cost_mb,round_completion_time,straggler_ratio,participated_clients
+1,94.22,0.18925644744038578,1,2.3539,6.337,,5
+2,97.0,0.09016083898171783,1,4.7078,5.496,,5
+3,97.72,0.06761696409638972,1,7.0617,5.014,,5
+4,98.26,0.05354176468960941,1,9.4156,4.995,,5
+5,98.39,0.04712955306451767,1,11.7695,4.896,,5
