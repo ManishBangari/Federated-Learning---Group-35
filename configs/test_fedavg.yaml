@@ -1,0 +1,34 @@
+# TEST CONFIG — FedAvg baseline quick test (5 rounds, 10 clients, MNIST)
+# Run: python main_no_ray.py --config configs/test_fedavg.yaml
+experiment:
+  name: "test_fedavg_mnist_10clients_iid"
+  algorithm: "fedavg"
+  seed: 42
+
+dataset:
+  name: "mnist"
+  partition: "iid"
+  dirichlet_alpha: null
+  num_classes: 10
+
+federation:
+  num_clients: 10
+  fraction_fit: 0.5
+  fraction_evaluate: 0.5
+  num_rounds: 5          # keep small for quick test
+  local_epochs: 2        # keep small for quick test
+  batch_size: 32
+
+model:
+  architecture: "lenet"
+
+optimizer:
+  name: "sgd"
+  lr: 0.01
+  momentum: 0.9
+  weight_decay: 1.0e-4
+
+logging:
+  save_results: true
+  results_dir: "results"
+  log_every_round: 1
