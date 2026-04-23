@@ -1,0 +1,43 @@
+# Fedasync Baseline | MNIST | 50 Clients | IID
+experiment:
+  name: "fedasync_mnist_50clients_iid"
+  algorithm: "fedasync"
+  seed: 42
+
+dataset:
+  name: "mnist"
+  partition: "iid"
+  dirichlet_alpha: null
+  num_classes: 10
+
+federation:
+  num_clients: 50
+  fraction_fit: 0.5
+  fraction_evaluate: 0.5
+  num_rounds: 100
+  local_epochs: 5
+  batch_size: 32
+
+model:
+  architecture: "lenet"
+
+optimizer:
+  name: "sgd"
+  lr: 0.01
+  momentum: 0.9
+  weight_decay: 1.0e-4
+
+# FedAsync specific hyperparameters (Section 5 of paper)
+fedasync:
+  mixing_rate: 0.1             # alpha — controls global update step size
+  staleness_fn: "polynomial"   # "constant" | "polynomial" | "hinge"
+  staleness_a: 0.5             # exponent for polynomial / hinge
+  staleness_b: 4               # hinge threshold (only used if staleness_fn=hinge)
+  steps_per_round: 50          # async steps per logging round
+  speed_distribution: "heterogeneous"   # "uniform" | "heterogeneous"
+  straggler_threshold: 0.5     # compute_speed below this = straggler
+
+logging:
+  save_results: true
+  results_dir: "results"
+  log_every_round: 1

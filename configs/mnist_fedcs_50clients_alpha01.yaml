@@ -1,28 +1,21 @@
-# TEST CONFIG — FedCS quick test (5 rounds, 10 clients, MNIST)
-# Run: python main_no_ray.py --config configs/test_fedcs.yaml
-#
-# Paper: Nishio & Yonetani. "Client Selection for FL with Heterogeneous
-#        Resources in Mobile Edge". IEEE ICC 2019. arXiv:1804.08333
-# Key idea: Select clients by resource capability + round deadline.
-#           Greedily maximise clients that can finish within T_round.
-
+# Fedcs Baseline | MNIST | 50 Clients | Non-IID a=0.1
 experiment:
-  name: "test_fedcs_mnist_10clients_iid"
+  name: "fedcs_mnist_50clients_alpha01"
   algorithm: "fedcs"
   seed: 42
 
 dataset:
   name: "mnist"
-  partition: "iid"
-  dirichlet_alpha: null
+  partition: "noniid_dirichlet"
+  dirichlet_alpha: 0.1
   num_classes: 10
 
 federation:
-  num_clients: 10
+  num_clients: 50
   fraction_fit: 0.5
   fraction_evaluate: 0.5
-  num_rounds: 5
-  local_epochs: 2
+  num_rounds: 100
+  local_epochs: 5
   batch_size: 32
 
 model:

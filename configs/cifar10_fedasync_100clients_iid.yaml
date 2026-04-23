@@ -1,31 +1,25 @@
-# TEST CONFIG — FedAsync quick test (5 rounds, 10 clients, MNIST)
-# Run: python main_no_ray.py --config configs/test_fedasync.yaml
-#
-# Paper: Xie, Koyejo, Gupta. "Asynchronous Federated Optimization". arXiv:1903.03934
-# Key idea: Server updates immediately on each client response.
-#           Stale updates are downweighted by staleness function.
-
+# Fedasync Baseline | CIFAR10 | 100 Clients | IID
 experiment:
-  name: "test_fedasync_mnist_10clients_iid"
+  name: "fedasync_cifar10_100clients_iid"
   algorithm: "fedasync"
   seed: 42
 
 dataset:
-  name: "mnist"
+  name: "cifar10"
   partition: "iid"
   dirichlet_alpha: null
   num_classes: 10
 
 federation:
-  num_clients: 10
+  num_clients: 100
   fraction_fit: 0.5
   fraction_evaluate: 0.5
-  num_rounds: 5
-  local_epochs: 2
+  num_rounds: 100
+  local_epochs: 5
   batch_size: 32
 
 model:
-  architecture: "lenet"
+  architecture: "resnet18"
 
 optimizer:
   name: "sgd"
@@ -39,7 +33,7 @@ fedasync:
   staleness_fn: "polynomial"   # "constant" | "polynomial" | "hinge"
   staleness_a: 0.5             # exponent for polynomial / hinge
   staleness_b: 4               # hinge threshold (only used if staleness_fn=hinge)
-  steps_per_round: 10          # async steps per logging round
+  steps_per_round: 100          # async steps per logging round
   speed_distribution: "heterogeneous"   # "uniform" | "heterogeneous"
   straggler_threshold: 0.5     # compute_speed below this = straggler
 

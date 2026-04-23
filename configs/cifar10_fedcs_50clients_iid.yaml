@@ -1,0 +1,41 @@
+# Fedcs Baseline | CIFAR10 | 50 Clients | IID
+experiment:
+  name: "fedcs_cifar10_50clients_iid"
+  algorithm: "fedcs"
+  seed: 42
+
+dataset:
+  name: "cifar10"
+  partition: "iid"
+  dirichlet_alpha: null
+  num_classes: 10
+
+federation:
+  num_clients: 50
+  fraction_fit: 0.5
+  fraction_evaluate: 0.5
+  num_rounds: 100
+  local_epochs: 5
+  batch_size: 32
+
+model:
+  architecture: "resnet18"
+
+optimizer:
+  name: "sgd"
+  lr: 0.01
+  momentum: 0.9
+  weight_decay: 1.0e-4
+
+# FedCS specific hyperparameters (Algorithm 2 of paper)
+fedcs:
+  t_round: 500.0              # T_round deadline (simulated seconds)
+                              # clients whose estimated_time > t_round are excluded
+  request_fraction: 0.8       # fraction of clients asked for resource info
+  speed_distribution: "heterogeneous"  # "uniform" | "heterogeneous"
+  straggler_threshold: 200.0  # estimated_time above this = straggler
+
+logging:
+  save_results: true
+  results_dir: "results"
+  log_every_round: 1
