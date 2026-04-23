@@ -185,7 +185,7 @@ def plot_metrics(
       2. Global Test Loss
       3. Cumulative Communication Cost (MB)
 
-    Saves both .png and .pdf to results/plots/
+    Saves .png to results/plots/
     """
     csv_path = os.path.join(results_dir, "metrics", f"{experiment_name}.csv")
     if not os.path.exists(csv_path):
@@ -249,8 +249,7 @@ def plot_metrics(
 
     base_path = os.path.join(results_dir, "plots", experiment_name)
     plt.savefig(f"{base_path}.png", dpi=300, bbox_inches="tight")
-    plt.savefig(f"{base_path}.pdf", bbox_inches="tight")
-    print(f"[Plot] Saved -> {base_path}.png / .pdf")
+    print(f"[Plot] Saved -> {base_path}.png")
 
     if show:
         plt.show()
@@ -258,7 +257,7 @@ def plot_metrics(
 
 # ══════════════════════════════════════════════════════════════════════
 #  MANDATORY FIGURES  (Section 6.1)
-#  All plots: 300 DPI, PNG + PDF, font >= 11pt, numbered captions.
+#  All plots: 300 DPI, PNG, font >= 11pt, numbered captions.
 #
 #  Figure 1 — Global Accuracy vs Rounds        (all experiments, one plot)
 #  Figure 2 — Global Loss vs Rounds            (all experiments, one plot)
@@ -294,10 +293,9 @@ def _apply_style():
 
 
 def _save_fig(fig, base_path: str, caption: str):
-    """Save figure as PNG (300 DPI) and PDF, then print caption."""
+    """Save figure as PNG (300 DPI), then print caption."""
     fig.savefig(f"{base_path}.png", dpi=DPI, bbox_inches="tight")
-    fig.savefig(f"{base_path}.pdf",           bbox_inches="tight")
-    print(f"[Plot] Saved -> {base_path}.png / .pdf")
+    print(f"[Plot] Saved -> {base_path}.png")
     print(f"       Caption: {caption}")
     plt.close(fig)
 
@@ -313,10 +311,13 @@ def _load_all_csvs(results_dir: str) -> dict:
         print(f"[Plot] Metrics dir not found: {metrics_dir}")
         return data
     for fname in sorted(os.listdir(metrics_dir)):
-        if fname.endswith(".csv"):
-            name = fname.replace(".csv", "")
-            df   = pd.read_csv(os.path.join(metrics_dir, fname))
-            data[name] = df
+        if not fname.endswith(".csv"):
+            continue
+        if fname == "results_table.csv":
+            continue
+        name = fname.replace(".csv", "")
+        df   = pd.read_csv(os.path.join(metrics_dir, fname))
+        data[name] = df
     print(f"[Plot] Loaded {len(data)} experiment CSV(s).")
     return data
 
@@ -664,21 +665,41 @@ def generate_results_table(results_dir: str = "results") -> pd.DataFrame:
     if not data:
         return pd.DataFrame()
 
+    def parse_experiment_name(name: str):
+        tokens = name.split("_")
+        if tokens and tokens[0].lower() == "test":
+            tokens = tokens[1:]
+
+        algo_map = {
+            "fedavg": "FedAvg",
+            "fedasync": "FedAsync",
+            "fedcs": "FedCS",
+        }
+        algo_token = tokens[0].lower() if tokens else "?"
+        algo = algo_map.get(algo_token, algo_token.upper())
+        dataset = tokens[1].upper() if len(tokens) > 1 else "?"
+
+        n_clients = "?"
+        if len(tokens) > 2:
+            client_token = tokens[2]
+            if client_token.endswith("clients"):
+                try:
+                    n_clients = int(client_token.replace("clients", ""))
+                except ValueError:
+                    n_clients = "?"
+            else:
+                digits = "".join(ch for ch in client_token if ch.isdigit())
+                n_clients = int(digits) if digits else "?"
+
+        partition = "_".join(tokens[3:]) if len(tokens) > 3 else "?"
+        return algo, dataset, n_clients, partition
+
     rows = []
     for name, df in data.items():
         if df.empty:
             continue
 
-        # Parse experiment name: <algo>_<dataset>_<N>clients_<partition>
-        parts  = name.split("_")
-        algo   = parts[0].upper() if len(parts) > 0 else "?"
-        dataset= parts[1].upper() if len(parts) > 1 else "?"
-        try:
-            n_clients = int(parts[2].replace("clients", ""))
-        except (IndexError, ValueError):
-            n_clients = "?"
-        partition = "_".join(parts[3:]) if len(parts) > 3 else "?"
-
+        algo, dataset, n_clients, partition = parse_experiment_name(name)
         n_rounds   = int(df["round"].max()) if "round" in df.columns else "?"
         best_acc   = round(df["global_test_accuracy"].max(), 2) \
                      if "global_test_accuracy" in df.columns else "?"
@@ -687,7 +708,6 @@ def generate_results_table(results_dir: str = "results") -> pd.DataFrame:
         comm_mb    = round(df["comm_cost_mb"].iloc[-1], 2) \
                      if "comm_cost_mb" in df.columns else "?"
 
-        # Cat. 7 metric: avg participated clients
         cat7 = "?"
         if "participated_clients" in df.columns and df["participated_clients"].notna().any():
             cat7 = f"Avg part.={df['participated_clients'].mean():.1f}"
@@ -710,12 +730,14 @@ def generate_results_table(results_dir: str = "results") -> pd.DataFrame:
         return pd.DataFrame()
 
     table_df = pd.DataFrame(rows)
+    table_df["Test Accuracy (%)"] = table_df["Test Accuracy (%)"].astype(object)
 
     # ── Bold (mark) best accuracy ──
-    if table_df["Test Accuracy (%)"].dtype in [float, np.float64]:
-        best_idx = table_df["Test Accuracy (%)"].idxmax()
-        table_df.loc[best_idx, "Test Accuracy (%)"] = \
-            f"**{table_df.loc[best_idx, 'Test Accuracy (%)']:.2f}**"
+    numeric_accuracy = pd.to_numeric(table_df["Test Accuracy (%)"], errors="coerce")
+    if numeric_accuracy.notna().any():
+        best_idx = numeric_accuracy.idxmax()
+        best_val = numeric_accuracy.loc[best_idx]
+        table_df.loc[best_idx, "Test Accuracy (%)"] = f"**{best_val:.2f}**"
 
     # Drop internal column before saving
     save_df = table_df.drop(columns=["_exp_name"])
